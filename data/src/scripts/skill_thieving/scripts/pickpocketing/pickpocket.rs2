@@ -129,7 +129,7 @@ if (%action_delay > map_clock) {
 
 ~pick_pocket($data);
 
-%action_delay = calc(map_clock + 3);
+%action_delay = calc(map_clock + 5);
 p_opnpc(3);
 
 
