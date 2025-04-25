@@ -13,6 +13,8 @@ if (~check_if_success_pick_pocket($data) = false) {
     def_int $stun_ticks = db_getfield($data, pickpocket:stun_ticks, 0);
     def_int $stun_damage = db_getfield($data, pickpocket:stun_damage, 0);
     ~fail_pick_pocket($stun_damage, $stun_ticks, $pocket);
+
+    queue(pickpocket, $stun_ticks, npc_uid);
     return;
 }
 
@@ -22,6 +24,15 @@ anim(human_pickpocket, 0);
 stat_advance(thieving, $experience);
 sound_synth(pick, 0, 0);
 mes("You pick the <$pocket>.");
+
+// Queue another pickpocket attempt
+queue(pickpocket, 3, npc_uid);
+
+//---queue to repeat pickpocketing.
+[queue,pickpocket](npc_uid $nid)
+if(npc_finduid($nid) = true & busy2 = false) {
+    p_opnpc(3);
+}
 
 [proc,check_if_success_pick_pocket](dbrow $data)(boolean)
 def_int $current_level = stat(thieving);
