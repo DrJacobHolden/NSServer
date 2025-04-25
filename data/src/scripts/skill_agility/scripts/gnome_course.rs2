@@ -92,7 +92,6 @@ if(coordz(coord) > coordz(loc_coord)) {
 ~forcewalk2(movecoord(loc_coord, 0, 0, -1));
 if(%gnome_obstacle_pipe_used >= map_clock) {
     mes("You get all squishy in the pipe."); 
-    return;
 }
 %gnome_obstacle_pipe_used = calc(map_clock + 5);
 ~agility_exactmove(human_doublepipesqueeze, 30, 4, movecoord(loc_coord, 0, 0, -1), movecoord(loc_coord, 0, 0, 2), 30, 126, ^exact_north, true);
