@@ -112,6 +112,7 @@ sound_synth(fire_lit, 0, 0);
 facesquare($fire_coord);
 //mes("<tostring(map_clock)>, <tostring(%action_delay)>: The fire catches and the logs begin to burn.");
 mes("The fire catches and the logs begin to burn.");
+queue(firemaking_repeat, 1, $log);
 def_int $delay = calc(100 + random(100)); // firemaking length: https://archive.is/zF5hb
 // Temp note: dur does not need updated
 loc_add($fire_coord, loc_2732, 1, centrepiece_straight, $delay);
@@ -119,6 +120,37 @@ loc_add($fire_coord, loc_2732, 1, centrepiece_straight, $delay);
 // -2 to match osrs behavior. Potentially this is an engine problem with world_delay being too slow though
 world_delay(add($delay, -2));
 obj_addall($fire_coord, ashes, 1, 100);
+
+//---queue to repeat firemaking.
+[queue,firemaking_repeat](obj $log)
+if(inv_total(inv, $log) > 0) {
+    def_int $slot = ~inv_find(inv, $log, 0);
+    if ($slot >= 0) {
+        @light_logs_inv($slot);
+    }
+}
+
+//--- proc to find the first slot of an item in an inventory to repeat firemaking with
+[proc,inv_find](inv $inv, obj $item, int $start_slot)(int)
+if ($inv = null) {
+    return(-1);
+}
+def_int $int3 = inv_size($inv);
+if ($start_slot < 0 | $start_slot >= $int3) {
+    return(-1);
+}
+if (inv_total($inv, $item) < 1) {
+    return(-1);
+}
+def_obj $obj4 = null;
+while ($start_slot < $int3) {
+    $obj4 = inv_getobj($inv, $start_slot);
+    if ($obj4 = $item) {
+        return($start_slot);
+    }
+    $start_slot = calc($start_slot + 1);
+}
+return(-1);
 
 [proc,area_allow_loc_add](coord $coord)(boolean)
 if (map_locaddunsafe($coord) = true) {
