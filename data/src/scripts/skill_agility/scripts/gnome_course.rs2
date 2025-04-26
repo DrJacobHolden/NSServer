@@ -103,13 +103,6 @@ p_delay(0);
 stat_advance(agility, 75);
 ~update_gnome_varp(7);
 
-// Go to the log balance
-p_walk(0_38_53_42_44);
-p_delay(5);
-if (loc_find(0_38_53_42_43, gnome_log_balance) = true) {
-    p_oploc(1);
-}
-
 [proc,gnome_trainer_say](string $line)
 if(npc_find(coord, gnome_trainer, 6, 0) = true) {
     npc_say($line);
