@@ -1,8 +1,8 @@
-[ai_timer,_freshfish] @move_fishing_spot;
-[ai_timer,_rarefish] @move_fishing_spot;
-[ai_timer,_memberfish] @move_fishing_spot;
-[ai_timer,_saltfish] @move_fishing_spot;
-[ai_timer,0_45_152_lava_eel] @move_fishing_spot; // lava eel
+// [ai_timer,_freshfish] @move_fishing_spot;
+// [ai_timer,_rarefish] @move_fishing_spot;
+// [ai_timer,_memberfish] @move_fishing_spot;
+// [ai_timer,_saltfish] @move_fishing_spot;
+// [ai_timer,0_45_152_lava_eel] @move_fishing_spot; // lava eel
 
 [label,move_fishing_spot]
 def_coord $rand_coord = ~fishing_spot_random_coord(npc_type);
