@@ -64,11 +64,11 @@ import { WorldStat } from '#/engine/WorldStat.js';
 import Zone from '#/engine/zone/Zone.js';
 import Isaac from '#/io/Isaac.js';
 import Packet from '#/io/Packet.js';
-import { ReportAbuseReason } from '#/network/client/model/ReportAbuse.js';
-import MessagePrivate from '#/network/server/model/MessagePrivate.js';
-import UpdateFriendList from '#/network/server/model/UpdateFriendList.js';
-import UpdateIgnoreList from '#/network/server/model/UpdateIgnoreList.js';
-import UpdateRebootTimer from '#/network/server/model/UpdateRebootTimer.js';
+import { ReportAbuseReason } from '#/network/game/client/model/ReportAbuse.js';
+import MessagePrivate from '#/network/game/server/model/MessagePrivate.js';
+import UpdateFriendList from '#/network/game/server/model/UpdateFriendList.js';
+import UpdateIgnoreList from '#/network/game/server/model/UpdateIgnoreList.js';
+import UpdateRebootTimer from '#/network/game/server/model/UpdateRebootTimer.js';
 import ClientSocket from '#/server/ClientSocket.js';
 import { FriendsServerOpcodes } from '#/server/friend/FriendServer.js';
 import { FriendThreadMessage } from '#/server/friend/FriendThread.js';
@@ -1425,11 +1425,6 @@ class World {
         this.zonesTracking.add(zone);
     }
 
-    trackLocObj(entity: Loc | Obj, duration: number): void {
-        entity.setLifeCycle(duration);
-        this.locObjTracker.addTail(new LocObjEvent(entity));
-    }
-
     addLoc(loc: Loc, duration: number): void {
         // printDebug(`[World] addLoc => name: ${LocType.get(loc.type).name}, duration: ${duration}`);
         const type: LocType = LocType.get(loc.type);
@@ -1440,11 +1435,7 @@ class World {
         const zone: Zone = this.gameMap.getZone(loc.x, loc.z, loc.level);
         zone.addLoc(loc);
         this.trackZone(zone);
-        if (duration > 0) {
-            this.trackLocObj(loc, duration);
-        } else {
-            loc.untrack();
-        }
+        loc.setLifeCycle(duration);
     }
 
     changeLoc(loc: Loc, typeID: number, shape: number, angle: number, duration: number) {
@@ -1474,7 +1465,15 @@ class World {
         const zone: Zone = this.gameMap.getZone(loc.x, loc.z, loc.level);
         zone.changeLoc(loc);
         this.trackZone(zone);
-        this.trackLocObj(loc, duration);
+
+        // If the loc is changed or dynamic, set the lifecycle
+        if (loc.isChanged() || loc.lifecycle === EntityLifeCycle.DESPAWN) {
+            loc.setLifeCycle(duration);
+        }
+        // If the loc is static and unchanged (i.e., the change didn't do anything)
+        else {
+            loc.setLifeCycle(-1);
+        }
     }
 
     mergeLoc(loc: Loc, player: Player, startCycle: number, endCycle: number, south: number, east: number, north: number, west: number): void {
@@ -1492,7 +1491,11 @@ class World {
     }
 
     removeLoc(loc: Loc, duration: number): void {
-        // printDebug(`[World] removeLoc => name: ${LocType.get(loc.type).name}, duration: ${duration}`);
+        // Locs can only be removed if they are currently active
+        if (!loc.isActive) {
+            return;
+        }
+
         const type: LocType = LocType.get(loc.type);
         if (type.blockwalk) {
             changeLocCollision(loc.shape, loc.angle, type.blockrange, type.length, type.width, type.active, loc.x, loc.z, loc.level, false);
@@ -1501,10 +1504,14 @@ class World {
         const zone: Zone = this.gameMap.getZone(loc.x, loc.z, loc.level);
         zone.removeLoc(loc);
         this.trackZone(zone);
-        if (duration > 0) {
-            this.trackLocObj(loc, duration);
-        } else {
-            loc.untrack();
+
+        // If the Loc is static, set a respawn duratio
+        if (loc.lifecycle === EntityLifeCycle.RESPAWN) {
+            loc.setLifeCycle(duration);
+        }
+        // Dynamic locs get removed permanently
+        else {
+            loc.setLifeCycle(-1);
         }
     }
 
@@ -1527,7 +1534,7 @@ class World {
         // Notify zone that loc has been changed
         const zone: Zone = this.gameMap.getZone(loc.x, loc.z, loc.level);
         zone.changeLoc(loc);
-        loc.untrack();
+        loc.setLifeCycle(-1);
         this.trackZone(zone);
     }
 
@@ -1541,7 +1548,8 @@ class World {
                 if (nextCount <= Inventory.STACK_LIMIT) {
                     // If an obj of the same type exists and is stackable and have the same receiver, then we merge them.
                     this.changeObj(existing, nextCount);
-                    this.trackLocObj(existing, duration);
+                    // Set the lifecycle without all the extra logic surrounding it
+                    existing.lifecycleTick = duration;
                     return;
                 }
             }
@@ -1554,7 +1562,7 @@ class World {
         if (receiver64 !== Obj.NO_RECEIVER) {
             // objs with a receiver always attempt to reveal 100 ticks after being dropped.
             // items that can't be revealed (untradable, members obj in f2p) will be skipped in revealObj
-            this.trackLocObj(obj, duration);
+            obj.setLifeCycle(duration);
             obj.receiver64 = receiver64;
 
             // Reveal Obj in 100 ticks
@@ -1563,11 +1571,7 @@ class World {
         // If the obj is dropped to all
         else {
             obj.reveal = -1;
-            if (duration > 0) {
-                this.trackLocObj(obj, duration);
-            } else {
-                obj.untrack();
-            }
+            obj.setLifeCycle(duration);
         }
     }
 
@@ -1584,16 +1588,23 @@ class World {
         this.trackZone(zone);
     }
 
+    // Dev note: this function is slightly awkward, might need reworked
     removeObj(obj: Obj, duration: number): void {
+        // Obj must be active to remove it from the world. An inactive Obj is already removed
+        if (!obj.isActive) {
+            return;
+        }
         // printDebug(`[World] removeObj => name: ${ObjType.get(obj.type).name}, duration: ${duration}`);
         const zone: Zone = this.gameMap.getZone(obj.x, obj.z, obj.level);
         const adjustedDuration = this.scaleByPlayerCount(duration);
         zone.removeObj(obj);
         this.trackZone(zone);
-        if (duration > 0) {
-            this.trackLocObj(obj, adjustedDuration);
+
+        // If the duration is positive and the Obj is a static obj, queue the Obj to respawn
+        if (duration > 0 && obj.lifecycle === EntityLifeCycle.RESPAWN) {
+            obj.setLifeCycle(adjustedDuration);
         } else {
-            obj.untrack();
+            obj.setLifeCycle(-1);
         }
     }
 
@@ -2163,7 +2174,14 @@ class World {
 
             // todo: login encoders/decoders
             client.opcode = World.loginBuf.g1();
-            client.waiting = client.opcode === 16 || client.opcode === 18 ? -1 : 0;
+
+            if (Environment.ENGINE_REVISION > 225 && client.opcode === 14) {
+                client.waiting = 1;
+            } else if (client.opcode === 16 || client.opcode === 18) {
+                client.waiting = -1;
+            } else {
+                client.waiting = 0;
+            }
         }
 
         if (client.waiting === -1) {
@@ -2185,9 +2203,19 @@ class World {
         World.loginBuf.pos = 0;
         client.read(World.loginBuf.data, 0, client.waiting);
 
-        if (client.opcode === 16 || client.opcode === 18) {
+        if (Environment.ENGINE_REVISION > 225 && client.opcode === 14) {
+            client.send(Uint8Array.from([0, 0, 0, 0, 0, 0, 0, 0]));
+
+            const _loginServer = World.loginBuf.g1();
+            client.send(Uint8Array.from([0]));
+
+            const seed = new Packet(new Uint8Array(8));
+            seed.p4(Math.floor(Math.random() * 0x00ffffff));
+            seed.p4(Math.floor(Math.random() * 0xffffffff));
+            client.send(seed.data);
+        } else if (client.opcode === 16 || client.opcode === 18) {
             const rev = World.loginBuf.g1();
-            if (rev !== 225) {
+            if (rev !== Environment.ENGINE_REVISION) {
                 client.send(Uint8Array.from([6]));
                 client.close();
                 return;
@@ -2292,7 +2320,7 @@ class World {
         if (filteredEventTypes.includes(event.event_type) && Math.abs(event.account_value) < Environment.NODE_MINIMUM_WEALTH_VALUE_EVENT) {
             return;
         }
-        
+
         const transaction: WealthTransactionEvent = {
             timestamp: Date.now(),
             ...event
@@ -2302,7 +2330,7 @@ class World {
             this.wealthTransactions.push(transaction);
             return;
         }
-        
+
         const key = JSON.stringify({
             type: event.event_type,
             id: event.account_id,
