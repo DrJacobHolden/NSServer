@@ -169,6 +169,7 @@ return ($sell_amount);
 [inv_button2,shop_template_side:inv] @shop_request(inv, last_slot, 1);
 [inv_button3,shop_template_side:inv] @shop_request(inv, last_slot, 5);
 [inv_button4,shop_template_side:inv] @shop_request(inv, last_slot, 10);
+[inv_button5,shop_template_side:inv] @shop_request(inv, last_slot, 50);
 
 // Buy buttons
 [inv_button2,shop_template:inv] @shop_request(%shop, last_slot, 1);

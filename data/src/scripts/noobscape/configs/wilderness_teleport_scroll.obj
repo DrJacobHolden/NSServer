@@ -1,0 +1,13 @@
+[wilderness_teleport_scroll]
+name=Teleport scroll
+desc=A magical scroll of teleportation without restrictions.
+cost=1
+members=yes
+model=model_3374_obj
+2dxof=1
+2dzoom=1010
+2dyan=672
+2dxan=360
+iop1=Teleport
+tradeable=no
+stackable=yes

@@ -1,0 +1,6 @@
+[opheld1,wilderness_teleport_scroll]
+if (~pre_tele_checks(0_48_54_15_40) = false) {
+    return;
+}
+inv_del(inv, wilderness_teleport_scroll, 1);
+~player_teleport_normal(0_48_54_15_40);

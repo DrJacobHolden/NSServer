@@ -3,9 +3,12 @@ def_int $rolls = calc(4 + random(3));
 def_int $roll = 0;
 def_int $rare = 0;
 
-if (random(3) = 0) {
+def_int $pre_roll = random(3);
+if ($pre_roll = 0) {
     def_namedobj $trail_clue_hard = enum(int, namedobj, trail_hard_enum, random(enum_getoutputcount(trail_hard_enum)));
     inv_add(trail_rewardinv, $trail_clue_hard, 1);
+} else if ($pre_roll = 1) {
+    inv_add(trail_rewardinv, wilderness_teleport_scroll, calc(random(3) + 6));
 }
 
 while ($roll < $rolls) {

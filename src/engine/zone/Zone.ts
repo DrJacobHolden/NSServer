@@ -303,7 +303,7 @@ export default class Zone {
     revealObj(obj: Obj): void {
         const objType: ObjType = ObjType.get(obj.type);
 
-        const tradedQuestItems = ['phoenix_crossbow', 'arravshield1', 'arravcertificate', 'misc_key', 'petecandlestick'];
+        const tradedQuestItems = ['phoenix_crossbow', 'arravshield1', 'arravshield2', 'arravcertificate', 'misc_key', 'petecandlestick'];
         // Prevent items owned by a player from ever becoming public except those required for quests.
         if (!(objType.debugname && tradedQuestItems.includes(objType.debugname))) {
             obj.reveal = -1;

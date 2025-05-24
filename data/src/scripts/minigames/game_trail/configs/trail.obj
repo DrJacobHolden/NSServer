@@ -61,22 +61,6 @@ members=yes
 category=trail_casket_easy
 tradeable=no
 
-// rename: cert_trail_clue_easy_map001_casket
-[obj_2715]
-name=Casket
-desc=I hope there's treasure in it.
-model=model_2450_obj
-2dxof=3
-2dyof=-6
-2dzoom=1410
-2dyan=1592
-2dxan=164
-cost=50
-iop1=Open
-members=yes
-stackable=yes
-tradeable=no
-
 [trail_clue_easy_map002_casket]
 name=Casket
 desc=I hope there's treasure in it.
